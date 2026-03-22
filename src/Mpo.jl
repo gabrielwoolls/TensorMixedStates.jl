@@ -54,7 +54,7 @@ end
 
 function PreMPO!(pre::PreMPO, as)
     for (i, a) in enumerate(as)
-        PreMPO!(a, pre, i)
+        PreMPO!(pre, a, i)
     end
     return pre
 end
@@ -65,8 +65,15 @@ end
 preprocess an operator (or vector of operators).
 The result can be passed wherever an operator that must be turned into an MPO is expected
 """
-PreMPO(state::State{R}, a; kwargs...) where R =
-    PreMPO!(PreMPO{R}(state.system), removeMulti(simplify(a; kwargs...)))
+function PreMPO(state::State{R}, a; kwargs...) where R
+    b = simplify(a; kwargs...)
+    if b isa AbstractVector
+        b = removeMulti.(b)
+    else
+        b = removeMulti(b)
+    end
+    return PreMPO!(PreMPO{R}(state.system), b)
+end
 
 """
     make_mpo(::PreMPO[, coefs])

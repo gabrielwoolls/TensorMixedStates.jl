@@ -7,7 +7,7 @@ import Base: *, +, -, /, ^, exp, sqrt, show, length, getindex, isless, ==
 import ITensors: matrix, truncate, dim, Index, dag, norm, sim
 import ITensorMPS: maxlinkdim, apply, state, expect, normalize, measure!, checkdone!, tdvp, dmrg
 
-using MKL, ITensors, ITensorMPS, Printf, Dates, JSON, Random
+using MKL, ITensors, ITensorMPS, Printf, Dates, JSON, Random, HDF5
 
 # Core
 include("Operators.jl")
@@ -30,6 +30,7 @@ include("Simulation.jl")
 include("Observers.jl")
 include("Output.jl")
 include("Run.jl")
+include("Io.jl")
 include("PhaseTypes.jl")
 include("Phases.jl")
 

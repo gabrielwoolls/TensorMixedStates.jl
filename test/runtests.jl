@@ -74,6 +74,19 @@ end
        @test_ok Simulation(nothing)
        @test_pm Simulation(State{type}(System(3, Qubit()), "Up"))
     end
+    @testset "Save state" begin
+        @test_ok begin
+            mktempdir() do dir
+                file = joinpath(dir, "state.h5")
+                sim = runTMS(SimData(; phases = [
+                    CreateState{Pure}(3, Qubit(), ["X+", "Z+", "Z-"]),
+                    SaveState(file = file, statename = "psi"),
+                ]); output = devnull)
+                @test sim isa Simulation
+                @test isfile(file)
+            end
+        end
+    end
     @testset "Qubit measuring" begin
         @test_pm test_phases(CreateState{type}(1, Qubit(), "Z+"; 
             final_measures = check([X(1), Y(1), Z(1)], [0, 0, 1])))

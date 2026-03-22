@@ -56,8 +56,6 @@ show(io::IO, s::CreateState{R}) where R =
 A phase type to save the state to disk
 
 SaveState(file = "myfile")
-
-not implemented
 """
 @kwdef struct SaveState
     name::String = "Saving state"
@@ -211,7 +209,7 @@ A phase type for time evolution
     duration::Number
     time_step::Number
     algo::Algo
-    evolver::Union{IndexedOp, Pair{IndexedOp, Vector}}
+    evolver::Union{IndexedOp, AbstractVector, Pair{<:Any, <:AbstractVector}}
     measures_period::Int = 1
     measures = []
 end

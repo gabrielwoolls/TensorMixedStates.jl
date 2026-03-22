@@ -55,8 +55,12 @@ function run_phase(sim::Simulation, phase::Evolve)
     state = sim.state
     if state isa State{Pure} && evolver isa IndexedOp{Mixed}
         error("Evolving error: state must be in mixed representation to use this evolver")
+    elseif state isa State{Pure} && evolver isa AbstractVector && any(a -> a isa IndexedOp{Mixed}, evolver)
+        error("Evolving error: state must be in mixed representation to use this evolver")
     elseif state isa State{Mixed} && evolver isa IndexedOp{Pure}
         evolver = Evolver(evolver)
+    elseif state isa State{Mixed} && evolver isa AbstractVector
+        evolver = map(a -> a isa IndexedOp{Pure} ? Evolver(a) : a, evolver)
     end
     pre = PreMPO(state, evolver)
     algo = phase.algo
@@ -87,11 +91,13 @@ function run_phase(sim::Simulation, phase::GroundState)
     return sim
 end
 
-run_phase(sim::Simulation, phase::SaveState) =
+function run_phase(sim::Simulation, phase::SaveState)
     save_state(phase.file, phase.statename, sim.state)
+    return sim
+end
     
 run_phase(sim::Simulation, phase::LoadState) =
-    Simulation(sim, truncate(load_state(phase.file, phase.statename); phase.limits))
+    error("LoadState is not implemented")
 
 function run_phase(sim::Simulation, phase::PartialTrace)
     pos = phase.trace_positions

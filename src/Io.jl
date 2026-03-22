@@ -7,19 +7,15 @@ save the state to disk in a hdf5 file,
 several states with different names can be saved in the same file
 """
 function save_state(filename::String, statename::String, state::State)
-    f = h5open(filename, "cw")
-    g = create_group(f, statename)
-    attrs(g)["show_data"] = state.system.show_data
-    if state.type == Pure
-        attrs(g)["type"] = 0
-        g["pure"] = state.state
-        g["mixed"] = MPS(state.system.mixed_sites)
-    else
-        attrs(g)["type"] = 1
-        g["pure"] = MPS(state.system.pure_sites)
-        g["mixed"] = state.state
+    h5open(filename, "cw") do f
+        if haskey(f, statename)
+            delete_object(f, statename)
+        end
+        g = create_group(f, statename)
+        attrs(g)["type"] = state isa State{Pure} ? "Pure" : "Mixed"
+        write(g, "state", state.state)
     end
-    close(f)
+    return nothing
 end
 
 """
@@ -28,17 +24,5 @@ end
 load a state previously saved by `save_sate`
 """
 function load_state(filename::String, statename::String)
-    f = h5open(filename, "r")
-    g = f[statename]
-    show_data = attrs(g)["show_data"]
-    tp = attrs(g)["type"]
-    pstate = read(g, "pure", MPS)
-    mstate = read(g, "mixed", MPS)
-    close(f)
-    s = System(siteinds(pstate), siteinds(mstate), show_data)
-    if tp == 0
-        return State(Pure, s, pstate)
-    else
-        return State(Mixed, s, mstate)
-    end
+    error("load_state is not implemented")
 end
