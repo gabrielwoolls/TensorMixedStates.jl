@@ -42,6 +42,7 @@ include("Qubits.jl")
 include("Fermions.jl")
 include("Bosons.jl")
 include("Spins.jl")
+include("Potts.jl") # adding custom Potts objects
 include("Electrons.jl")
 include("Tjs.jl")
 include("Qbosons.jl")
