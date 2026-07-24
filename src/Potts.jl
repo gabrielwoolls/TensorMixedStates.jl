@@ -51,8 +51,10 @@ NumQ          = [0. 0. 0.; 0. 1. 0.; 0. 0. 2.],
 Proj0         = [1. 0. 0.; 0. 0. 0.; 0. 0. 0.],
 Proj1         = [0. 0. 0.; 0. 1. 0.; 0. 0. 0.],
 Proj2         = [0. 0. 0.; 0. 0. 0.; 0. 0. 1.],
-EtaPlusEtaDag = [2. 0. 0.; 0. -1. 0.; 0. 0. -1.],   # η+η†, real order parameter
-TauPlusTauDag = [0. 1. 1.; 1. 0. 1.; 1. 1. 0.],     # τ+τ†, Hermitian field op
+EtaPlusEtaDag = [2. 0. 0.; 0. -1. 0.; 0. 0. -1.],            # η+η†, real order parameter
+TauPlusTauDag = [0. 1. 1.; 1. 0. 1.; 1. 1. 0.],              # τ+τ†, Hermitian field op
+EtaHermDiff   = [0. 0. 0.; 0. -√3 0.; 0. 0. √3],             # i(η-η†) = diag(0,-√3,√3)
+TauHermDiff   = ComplexF64[0 im -im; -im 0 im; im -im 0],     # i(τ-τ†)
 ],
 plain_op =>
 [
@@ -73,10 +75,10 @@ Submodule re-exporting Potts site operators.  Use as:
 Exports: Potts, Eta, Tau, NumQ, Proj0, Proj1, Proj2
 """
 module Potts_mod
-    import ..Potts, ..Eta, ..EtaDag, ..EtaPlusEtaDag,
-           ..Tau, ..TauDag, ..TauPlusTauDag,
+    import ..Potts, ..Eta, ..EtaDag, ..EtaPlusEtaDag, ..EtaHermDiff,
+           ..Tau, ..TauDag, ..TauPlusTauDag, ..TauHermDiff,
            ..NumQ, ..Proj0, ..Proj1, ..Proj2
-    export Potts, Eta, EtaDag, EtaPlusEtaDag,
-           Tau, TauDag, TauPlusTauDag,
+    export Potts, Eta, EtaDag, EtaPlusEtaDag, EtaHermDiff,
+           Tau, TauDag, TauPlusTauDag, TauHermDiff,
            NumQ, Proj0, Proj1, Proj2
 end
