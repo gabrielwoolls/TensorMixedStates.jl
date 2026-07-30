@@ -58,10 +58,12 @@ TauHermDiff   = ComplexF64[0 im -im; -im 0 im; im -im 0],     # i(τ-τ†)
 ],
 plain_op =>
 [
-Eta    = [1. 0. 0.; 0. ω3 0.; 0. 0. ω3^2],
-EtaDag = [1. 0. 0.; 0. conj(ω3) 0.; 0. 0. conj(ω3)^2],
-Tau    = [0. 1. 0.; 0. 0. 1.; 1. 0. 0.],
-TauDag = [0. 0. 1.; 1. 0. 0.; 0. 1. 0.],
+Eta          = [1. 0. 0.; 0. ω3 0.; 0. 0. ω3^2],
+EtaDag       = [1. 0. 0.; 0. conj(ω3) 0.; 0. 0. conj(ω3)^2],
+Tau          = [0. 1. 0.; 0. 0. 1.; 1. 0. 0.],
+TauDag       = [0. 0. 1.; 1. 0. 0.; 0. 1. 0.],
+EtaDagTau    = [0. 1. 0.; 0. 0. conj(ω3); conj(ω3)^2 0. 0.],    # η†τ
+EtaDagTauDag = [0. 0. 1.; conj(ω3) 0. 0.; 0. conj(ω3)^2 0.],    # η†τ†
 ],
 ])
 
@@ -77,8 +79,10 @@ Exports: Potts, Eta, Tau, NumQ, Proj0, Proj1, Proj2
 module Potts_mod
     import ..Potts, ..Eta, ..EtaDag, ..EtaPlusEtaDag, ..EtaHermDiff,
            ..Tau, ..TauDag, ..TauPlusTauDag, ..TauHermDiff,
+           ..EtaDagTau, ..EtaDagTauDag,
            ..NumQ, ..Proj0, ..Proj1, ..Proj2
     export Potts, Eta, EtaDag, EtaPlusEtaDag, EtaHermDiff,
            Tau, TauDag, TauPlusTauDag, TauHermDiff,
+           EtaDagTau, EtaDagTauDag,
            NumQ, Proj0, Proj1, Proj2
 end
