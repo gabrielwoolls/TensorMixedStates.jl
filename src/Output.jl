@@ -1,31 +1,12 @@
 export output, log_msg
 
-const thresh_warn_imag = 1e-6
-
 make_real(::Simulation, _, data) = data
 
-warn_imag(sim::Simulation, header, x) =
-    log_msg(sim, "WARNING: large imaginary part: time $(sim.time), $header " * @sprintf("%8.1e (rel %8.1e)", imag(x), imag(x) / real(x)))
-
-function make_real(sim::Simulation, header, data::Number)
-    if abs(imag(data)) > thresh_warn_imag
-        warn_imag(sim, header, data)
-    end
-    return real(data)
+function make_real(_::Simulation, _, data::Number)
+    return data
 end
 
-function make_real(sim::Simulation, header, data::Union{Vector, Matrix})
-    map(keys(data)) do ij
-        x = data[ij]
-        if !(x isa Number)
-            return X
-        end
-        if abs(imag(x)) > thresh_warn_imag
-            warn_imag(sim, "$header $(Tuple(ij))", x)
-        end
-        return real(x)
-    end
-end
+make_real(_::Simulation, _, data::Union{Vector, Matrix}) = data
 
 function output_one(file, x::AbstractFloat, format)
     Printf.format(file, format, x)

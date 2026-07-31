@@ -1,5 +1,5 @@
 export trace, trace2, norm, normalize, dag, hermitianize, hermiticity, renyi2
-export expect, expect1, expect2
+export expect, expect1, expect2, expect_bond_bond, expect_1_bond
 export entanglement_entropy, partial_trace, mutual_info_renyi2
 
 function tensor_trace(state::State{Mixed}, i::Int)
@@ -434,6 +434,193 @@ Compute the 2-point correlations of the given pairs of operators on all sites.
 """
 expect2(state::State, ops::Tuple{SimpleOp, SimpleOp}) =
     expect2(state, [ops])[1]
+
+
+# ── Three-site expectation value helper ──────────────────────────────────────
+# Used internally by expect_bond_bond and expect_1_bond for overlapping cases.
+function _expect3(state::State, oa::SimpleOp, ob::SimpleOp, oc::SimpleOp, a::Int, b::Int, c::Int)
+    e = zipto(state, Expector(), a)
+    e = Expector(a, e.t * tensor_obs(state, oa(a)))
+    e = zipto(state, e, b)
+    e = Expector(b, e.t * tensor_obs(state, ob(b)))
+    e = zipto(state, e, c)
+    e = Expector(c, e.t * tensor_obs(state, oc(c)))
+    scalar(zipend(state, e).t)
+end
+
+"""
+    expect_bond_bond(state, (op1, op2, op3, op4))
+
+Compute ⟨op1(a) op2(a+1) op3(b) op4(b+1)⟩ for all bond pairs (a,b)
+with 1 ≤ a,b ≤ N-1. Returns an (N-1)×(N-1) matrix.
+
+Cases:
+- |a-b| ≥ 2 : non-overlapping bonds, O(N²) sweep.
+- a == b     : same bond, ⟨(op1·op3)(a) (op2·op4)(a+1)⟩.
+- |a-b| == 1 : adjacent overlapping bonds, evaluated as a 3-site expectation.
+"""
+function expect_bond_bond(state::State, ops::NTuple{4, SimpleOp})
+    o1, o2, o3, o4 = ops
+    n = length(state)
+    r = Matrix{ComplexF64}(undef, n-1, n-1)
+
+    # ── Non-overlapping a < b (b ≥ a+2) ──────────────────────────────────────
+    for a in 1:n-1
+        # Bond-left env at a+1: o1(a) then o2(a+1) incorporated.
+        la  = zipto(state, Expector(), a)
+        la  = Expector(a,   la.t  * tensor_obs(state, o1(a)))
+        la1 = zipto(state, la, a+1)
+        la1 = Expector(a+1, la1.t * tensor_obs(state, o2(a+1)))
+
+        a+2 > n-1 && continue
+        sweep = zipto(state, la1, a+2)  # identity at a+2..a+1 (none), open ket at a+2
+
+        for b in a+2:n-1
+            # Apply o3(b), advance to b+1, apply o4(b+1), contract right.
+            e = Expector(b,   sweep.t  * tensor_obs(state, o3(b)))
+            e = zipto(state, e, b+1)
+            e = Expector(b+1, e.t * tensor_obs(state, o4(b+1)))
+            r[a, b] = scalar(e.t * get_right(state, b+1))
+
+            # Advance sweep with identity at b (for next b).
+            if b < n-1
+                s     = Expector(b, sweep.t * tensor_obs(state, Id(b)))
+                sweep = zipto(state, s, b+1)
+            end
+        end
+    end
+
+    # ── Non-overlapping a > b (a ≥ b+2): same sweep with roles swapped ───────
+    for b in 1:n-1
+        lb  = zipto(state, Expector(), b)
+        lb  = Expector(b,   lb.t  * tensor_obs(state, o3(b)))
+        lb1 = zipto(state, lb, b+1)
+        lb1 = Expector(b+1, lb1.t * tensor_obs(state, o4(b+1)))
+
+        b+2 > n-1 && continue
+        sweep = zipto(state, lb1, b+2)
+
+        for a in b+2:n-1
+            e = Expector(a,   sweep.t  * tensor_obs(state, o1(a)))
+            e = zipto(state, e, a+1)
+            e = Expector(a+1, e.t * tensor_obs(state, o2(a+1)))
+            r[a, b] = scalar(e.t * get_right(state, a+1))
+
+            if a < n-1
+                s     = Expector(a, sweep.t * tensor_obs(state, Id(a)))
+                sweep = zipto(state, s, a+1)
+            end
+        end
+    end
+
+    # ── Diagonal a == b: ⟨(o1·o3)(a) (o2·o4)(a+1)⟩ ─────────────────────────
+    for a in 1:n-1
+        e = zipto(state, Expector(), a)
+        e = Expector(a,   e.t  * tensor_obs(state, (o1*o3)(a)))
+        e = zipto(state, e, a+1)
+        e = Expector(a+1, e.t * tensor_obs(state, (o2*o4)(a+1)))
+        r[a, a] = scalar(e.t * get_right(state, a+1))
+    end
+
+    # ── Adjacent a == b+1: overlap at site a, 3-site ⟨o3(b) (o1·o4)(a) o2(a+1)⟩ ──
+    for a in 2:n-1
+        b = a - 1
+        r[a, b] = _expect3(state, o3, o1*o4, o2, b, a, a+1)
+    end
+
+    # ── Adjacent a == b-1: overlap at site a+1, 3-site ⟨o1(a) (o2·o3)(a+1) o4(b+1)⟩ ──
+    for a in 1:n-2
+        b = a + 1
+        r[a, b] = _expect3(state, o1, o2*o3, o4, a, a+1, b+1)
+    end
+
+    return r
+end
+
+
+"""
+    expect_1_bond(state, op_single, (op_bond_l, op_bond_r))
+
+Compute ⟨op_single(i) · op_bond_l(j) op_bond_r(j+1)⟩ for all (i, j)
+with 1 ≤ i ≤ N, 1 ≤ j ≤ N-1. Returns an N×(N-1) matrix.
+
+Non-overlapping cases use O(N²) sweeps. Overlapping cases (i adjacent
+to or coincident with the bond sites) are computed as 2- or 3-site
+expectation values.
+"""
+function expect_1_bond(state::State, os::SimpleOp, bond_ops::NTuple{2, SimpleOp})
+    ob1, ob2 = bond_ops
+    n = length(state)
+    r = Matrix{ComplexF64}(undef, n, n-1)
+
+    # ── Single site i strictly left of bond (i ≤ j-2) ─────────────────────────
+    # sweep_env carries l_{j-1} open (not k_{j-1}): os is already applied at i,
+    # intermediate sites are traced with get_loc, and we open j via state.state[j].
+    for i in 1:n-3  # need at least j = i+2 ≤ n-1, so i ≤ n-3
+        li = zipto(state, Expector(), i)
+        li = Expector(i, li.t * tensor_obs(state, os(i)))  # l_i open
+
+        # Trace site i+1 to initialise sweep_env with l_{i+1} open.
+        sweep_env = li.t * get_loc(state, i+1)
+
+        for j in i+2:n-1
+            t_j = sweep_env * state.state[j]   # l_{j-1} contracts; k_j, l_j open
+            e   = Expector(j,   t_j * tensor_obs(state, ob1(j)))   # close k_j
+            e   = zipto(state, e, j+1)
+            e   = Expector(j+1, e.t * tensor_obs(state, ob2(j+1)))
+            r[i, j] = scalar(zipend(state, e).t)
+
+            # Advance: trace site j (reusing t_j), l_j open ready for j+1.
+            sweep_env = t_j * tensor_trace(state, j)
+        end
+    end
+
+    # ── Single site i strictly right of bond (i ≥ j+2) ───────────────────────
+    for j in 1:n-1
+        lj  = zipto(state, Expector(), j)
+        lj  = Expector(j,   lj.t  * tensor_obs(state, ob1(j)))
+        lj1 = zipto(state, lj, j+1)
+        lj1 = Expector(j+1, lj1.t * tensor_obs(state, ob2(j+1)))
+
+        j+2 > n && continue
+        sweep = zipto(state, lj1, j+2)
+
+        for i in j+2:n
+            e = zipend(state, sweep)
+            r[i, j] = scalar(e.t * tensor_obs(state, os(i)))
+
+            if i < n
+                s     = Expector(i, sweep.t * tensor_obs(state, Id(i)))
+                sweep = zipto(state, s, i+1)
+            end
+        end
+    end
+
+    # ── i == j-1: 3-site ⟨os(i) ob1(j) ob2(j+1)⟩ ────────────────────────────
+    for j in 2:n-1
+        r[j-1, j] = _expect3(state, os, ob1, ob2, j-1, j, j+1)
+    end
+
+    # ── i == j:   2-site ⟨(os·ob1)(j) ob2(j+1)⟩ ─────────────────────────────
+    for j in 1:n-1
+        e = zipto(state, Expector(), j)
+        e = Expector(j,   e.t  * tensor_obs(state, (os*ob1)(j)))
+        e = zipto(state, e, j+1)
+        e = Expector(j+1, e.t * tensor_obs(state, ob2(j+1)))
+        r[j, j] = scalar(e.t * get_right(state, j+1))
+    end
+
+    # ── i == j+1: 2-site ⟨ob1(j) (ob2·os)(j+1)⟩ ─────────────────────────────
+    for j in 1:n-1
+        e = zipto(state, Expector(), j)
+        e = Expector(j,   e.t  * tensor_obs(state, ob1(j)))
+        e = zipto(state, e, j+1)
+        e = Expector(j+1, e.t * tensor_obs(state, (ob2*os)(j+1)))
+        r[j+1, j] = scalar(e.t * get_right(state, j+1))
+    end
+
+    return r
+end
 
 
 """

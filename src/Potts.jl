@@ -51,19 +51,19 @@ NumQ          = [0. 0. 0.; 0. 1. 0.; 0. 0. 2.],
 Proj0         = [1. 0. 0.; 0. 0. 0.; 0. 0. 0.],
 Proj1         = [0. 0. 0.; 0. 1. 0.; 0. 0. 0.],
 Proj2         = [0. 0. 0.; 0. 0. 0.; 0. 0. 1.],
-EtaPlusEtaDag = [2. 0. 0.; 0. -1. 0.; 0. 0. -1.],            # η+η†, real order parameter
-TauPlusTauDag = [0. 1. 1.; 1. 0. 1.; 1. 1. 0.],              # τ+τ†, Hermitian field op
+EtaHermSum = [2. 0. 0.; 0. -1. 0.; 0. 0. -1.],            # η+η†, real order parameter
+TauHermSum = [0. 1. 1.; 1. 0. 1.; 1. 1. 0.],              # τ+τ†, Hermitian field op
 EtaHermDiff   = [0. 0. 0.; 0. -√3 0.; 0. 0. √3],             # i(η-η†) = diag(0,-√3,√3)
 TauHermDiff   = ComplexF64[0 im -im; -im 0 im; im -im 0],     # i(τ-τ†)
 ],
 plain_op =>
 [
-Eta          = [1. 0. 0.; 0. ω3 0.; 0. 0. ω3^2],
-EtaDag       = [1. 0. 0.; 0. conj(ω3) 0.; 0. 0. conj(ω3)^2],
-Tau          = [0. 1. 0.; 0. 0. 1.; 1. 0. 0.],
-TauDag       = [0. 0. 1.; 1. 0. 0.; 0. 1. 0.],
-EtaDagTau    = [0. 1. 0.; 0. 0. conj(ω3); conj(ω3)^2 0. 0.],    # η†τ
-EtaDagTauDag = [0. 0. 1.; conj(ω3) 0. 0.; 0. conj(ω3)^2 0.],    # η†τ†
+Eta          = [1. 0. 0.; 0. ω3 0.; 0. 0. conj(ω3)],
+EtaDag       = [1. 0. 0.; 0. conj(ω3) 0.; 0. 0. ω3],
+Tau          = [0. 0. 1.; 1. 0. 0.; 0. 1. 0.],
+TauDag       = [0. 1. 0.; 0. 0. 1.; 1. 0. 0.],
+Zeta         = [0. 0. 1.; conj(ω3) 0. 0.; 0. ω3 0.],    # ζ=η†τ
+ZetaPrime    = [0. 1. 0.; 0. 0. conj(ω3); ω3 0. 0.],    # ζ′=η†τ†
 ],
 ])
 
@@ -77,12 +77,12 @@ Submodule re-exporting Potts site operators.  Use as:
 Exports: Potts, Eta, Tau, NumQ, Proj0, Proj1, Proj2
 """
 module Potts_mod
-    import ..Potts, ..Eta, ..EtaDag, ..EtaPlusEtaDag, ..EtaHermDiff,
-           ..Tau, ..TauDag, ..TauPlusTauDag, ..TauHermDiff,
-           ..EtaDagTau, ..EtaDagTauDag,
+    import ..Potts, ..Eta, ..EtaDag, ..EtaHermSum, ..EtaHermDiff,
+           ..Tau, ..TauDag, ..TauHermSum, ..TauHermDiff,
+           ..Zeta, ..ZetaPrime,
            ..NumQ, ..Proj0, ..Proj1, ..Proj2
-    export Potts, Eta, EtaDag, EtaPlusEtaDag, EtaHermDiff,
-           Tau, TauDag, TauPlusTauDag, TauHermDiff,
-           EtaDagTau, EtaDagTauDag,
+    export Potts, Eta, EtaDag, EtaHermSum, EtaHermDiff,
+           Tau, TauDag, TauHermSum, TauHermDiff,
+           Zeta, ZetaPrime,
            NumQ, Proj0, Proj1, Proj2
 end
